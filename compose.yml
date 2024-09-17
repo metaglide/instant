@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: public.ecr.aws/z9j8u5b3/instant-public:postgres-13
+    container_name: postgres
+
+    environment:
+      POSTGRES_PASSWORD: pass
+      POSTGRES_USER: instant
+      POSTGRES_DB: instant
+
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=4
+      - -c
+      - max_wal_senders=4
+
+    volumes:
+      - backend-db:/var/lib/postgresql/data
+
+    ports:
+      - 8890:5432
+
+    networks:
+      - internal
+
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "instant" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    container_name: instantdb-server
+    depends_on:
+      - postgres
+
+    build:
+      context: ./server
+      dockerfile: Dockerfile-dev
+
+    environment:
+      DATABASE_URL: postgresql://instant:pass@postgres:5432/instant
+      NREPL_BIND_ADDRESS: 0.0.0.0
+
+    volumes:
+      - ./server:/app
+
+    ports:
+      - 8888:8888
+      - 6005:6005
+
+    networks:
+      - internal
+
+  client:
+    container_name: instantdb-client
+
+    build:
+      context: ./client
+      dockerfile: dev.Dockerfile
+
+    ports:
+      - 3030:3000
+
+    networks:
+      - internal
+
+networks:
+  internal:
+
+
+volumes:
+  backend-db:

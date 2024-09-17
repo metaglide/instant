@@ -1,4 +1,4 @@
-FROM amazoncorretto:22 AS builder
+FROM amazoncorretto:11 AS builder
 
 WORKDIR /app
 
